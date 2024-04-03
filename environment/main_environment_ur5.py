@@ -8,10 +8,12 @@ import collections
 collections.Iterable = collections.abc.Iterable # Need this for math3d lib issues
 
 from tools.util import prepare_point
+from tools.camera import Camera
+from cares_lib.vision.ArucoDetector import ArucoDetector
 
 
 class Environment:
-    def __init__(self, robot, velocity=0.1, acceleration=0.5):
+    def __init__(self, robot, velocity=0.1, acceleration=0.5, camera_matrix=None, camera_distortion=None):
         self.robot = robot
 
         self.robot.set_tcp((0, 0, 0, 0, 0, 0))  # Set tool central point
@@ -32,6 +34,11 @@ class Environment:
         # wrist 3 range
         self.min_angle_rotation = -80
         self.max_angle_rotation = 80
+
+        # -------- Vision --------- #
+        marker_size = 4
+        self.camera = Camera(camera_matrix, camera_distortion)
+        self.marker_detector = ArucoDetector(marker_size=marker_size)
 
 
     def test_position(self, x, y, z):
@@ -147,13 +154,45 @@ class Environment:
         desire_pose_4 = self.check_point((desire_position_4 + desire_orientation_4))
         self.robot.movel(desire_pose_4, acc=self.acc, vel=self.vel)
 
-
         #self.robot.movels([desire_pose_1, desire_pose_2, desire_pose_3], vel=self.vel, acc=self.acc, radius=0.01)
 
 
-    def get_state(self):
-        pass
-        # working here
+    def get_marker_poses(self):
+        possible_ids = [0, 1, 2, 3, 4, 5, 6]  # possible ids
+
+        while True:
+            frame = self.camera.get_frame()
+            marker_poses = self.marker_detector.get_marker_poses(frame,
+                                                                 self.camera.camera_matrix,
+                                                                 self.camera.camera_distortion,
+                                                                 display=True)
+
+            detected_ids = [ids for ids in marker_poses]
+
+            if any(ids in detected_ids for ids in possible_ids):
+                print("Detected IDs:", detected_ids)
+                break
+            print("no marker detected")
+        return detected_ids, marker_poses
+
+    def aruco_state_space(self):
+        state = []
+        marker_ids, marker_poses = self.get_marker_poses()
+
+        for id in marker_ids:
+            marker_pose = marker_poses[id]
+            position = marker_pose["position"]
+            state.append(position[0])  # X
+            state.append(position[1])  # Y
+            state.append(position[2])  # Z
+        return state
+
+
+    # def get_state(self):
+    #     # working here
+    #     # aruco_state_space = self.aruco_state_space()
+    #     # robot_stte_space =
+
 
 
 
