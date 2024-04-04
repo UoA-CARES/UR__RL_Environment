@@ -3,11 +3,11 @@ import json
 import urx
 import logging
 logging.basicConfig(level=logging.INFO)
-import collections
-collections.Iterable = collections.abc.Iterable # Need this for math3d lib issues
-
 from environment.main_environment_ur5 import Environment
 
+# Need this for math3d lib issues
+import collections
+collections.Iterable = collections.abc.Iterable
 
 
 def read_config_file():
@@ -16,6 +16,7 @@ def read_config_file():
     with open(config_path) as f:
         config = json.load(f)
     return config
+
 
 def read_camera_files():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -39,14 +40,13 @@ def main():
                       camera_matrix=camera_matrix,
                       camera_distortion=camera_distortion)
 
-
     env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
 
     while True:
         env.get_state()
 
-    # for i in range(10):
+    # for i in range(2):
     #     env.hard_code_solution()
     #     env.reset_task()
     # env.robot_home_position()

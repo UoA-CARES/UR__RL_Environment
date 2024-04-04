@@ -1,6 +1,6 @@
 {
-    "ip_robot": "172.17.0.2",
+    "ip_robot": "192.168.131.9",
     "urFirm": 3.12,
     "velocity": 1.0,
-    "acceleration": 9.5
+    "acceleration": 11.0
 }

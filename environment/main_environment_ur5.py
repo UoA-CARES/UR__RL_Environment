@@ -42,7 +42,6 @@ class Environment:
         self.possible_ids = [7, 8, 9, 10, 11]  # possible IDs in the cube 7-11,
         self.cup_id = 0                        # ID attached to the cup
 
-
     def test_position(self, x, y, z):
         ellipse_eq = ((x - self.h) ** 2) / (self.a ** 2) + ((z - self.k) ** 2) / (self.b ** 2)
         if ellipse_eq > 1:
@@ -71,7 +70,6 @@ class Environment:
             move_pose = prepare_point((self.home_position + self.home_orientation))
             return move_pose
         return prepare_point(pose)
-
 
     def sample_position(self):
         theta = random.uniform(0, 2 * math.pi)  # Generate random angle in radians
@@ -109,15 +107,12 @@ class Environment:
         self.robot_home_position()
 
         # this is to reduce the oscillation
-        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.66)
+        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.59)
         touch_ground_move_pose = prepare_point((desire_position + self.home_orientation))
         self.robot.movel(touch_ground_move_pose, vel=0.2, acc=1.0)
         time.sleep(2)
 
         self.robot_home_position()
-
-
-
 
     def get_sample_pose(self):
         desire_position = self.sample_position()  # (x, y, z) w.r.t to the base
@@ -133,25 +128,25 @@ class Environment:
     def hard_code_solution(self):
 
         # pose 1
-        desire_position_1 = (self.home_position[0]+0.25, self.home_position[1], self.home_position[2]+0.10)
+        desire_position_1 = (self.home_position[0]+0.27, self.home_position[1], self.home_position[2]+0.10)
         desire_orientation_1 = (self.home_orientation[0], self.home_orientation[1], self.home_orientation[2])
         desire_pose_1 = self.check_point((desire_position_1 + desire_orientation_1))
         self.robot.movel(desire_pose_1, acc=self.acc, vel=self.vel)
 
         # pose 2
-        desire_position_2 = (self.home_position[0]-0.25, self.home_position[1], self.home_position[2]-0.10)
+        desire_position_2 = (self.home_position[0]-0.27, self.home_position[1], self.home_position[2]-0.10)
         desire_orientation_2 = (self.home_orientation[0], self.home_orientation[1]+45, self.home_orientation[2])
         desire_pose_2 = self.check_point((desire_position_2 + desire_orientation_2))
         self.robot.movel(desire_pose_2, acc=self.acc, vel=self.vel)
 
         # pose 3
-        desire_position_3 = (self.home_position[0], self.home_position[1], self.home_position[2])
+        desire_position_3 = (self.home_position[0]+0.10, self.home_position[1], self.home_position[2])
         desire_orientation_3 = (self.home_orientation[0], self.home_orientation[1]+40, self.home_orientation[2])
         desire_pose_3 = self.check_point((desire_position_3 + desire_orientation_3))
         self.robot.movel(desire_pose_3, acc=self.acc, vel=self.vel)
 
         # pose 4
-        desire_position_4 = (self.home_position[0], self.home_position[1], self.home_position[2])
+        desire_position_4 = (self.home_position[0]+0.10, self.home_position[1], self.home_position[2])
         desire_orientation_4 = (self.home_orientation[0], self.home_orientation[1], self.home_orientation[2])
         desire_pose_4 = self.check_point((desire_position_4 + desire_orientation_4))
         self.robot.movel(desire_pose_4, acc=self.acc, vel=self.vel)
