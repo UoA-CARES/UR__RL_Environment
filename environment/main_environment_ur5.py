@@ -39,6 +39,8 @@ class Environment:
         marker_size = 4
         self.camera = Camera(camera_matrix, camera_distortion)
         self.marker_detector = ArucoDetector(marker_size=marker_size)
+        self.possible_ids = [7, 8, 9, 10, 11]  # possible IDs in the cube 7-11,
+        self.cup_id = 0                        # ID attached to the cup
 
 
     def test_position(self, x, y, z):
@@ -158,8 +160,6 @@ class Environment:
 
 
     def get_marker_poses(self):
-        possible_ids = [0, 1, 2, 3, 4, 5, 6]  # possible ids
-
         while True:
             frame = self.camera.get_frame()
             marker_poses = self.marker_detector.get_marker_poses(frame,
@@ -169,34 +169,66 @@ class Environment:
 
             detected_ids = [ids for ids in marker_poses]
 
-            if any(ids in detected_ids for ids in possible_ids):
-                print("Detected IDs:", detected_ids)
+            detected_possible_ids = any(ids in detected_ids for ids in self.possible_ids)
+            detected_cup_id = self.cup_id in detected_ids
+
+            if detected_possible_ids and detected_cup_id:
+                logging.info("Detected IDs: %s", detected_ids)
                 break
-            print("no marker detected")
+            logging.info("no marker detected")
+
         return detected_ids, marker_poses
 
     def aruco_state_space(self):
         state = []
         marker_ids, marker_poses = self.get_marker_poses()
 
+        cup_marker_pose = marker_poses[self.cup_id]
+        cup_position = cup_marker_pose["position"]
+
+        deltas = {"dx": [], "dy": [], "dz": []}
+
         for id in marker_ids:
-            marker_pose = marker_poses[id]
-            position = marker_pose["position"]
-            state.append(position[0])  # X
-            state.append(position[1])  # Y
-            state.append(position[2])  # Z
+            if id != self.cup_id:  # Exclude the cup ID itself
+                marker_pose = marker_poses[id]
+                marker_position = marker_pose["position"]
+
+                # Calculate the delta distance between the marker and the cup for each axis
+                dx =  marker_position[0] - cup_position[0]
+                dy =  marker_position[1] - cup_position[1]
+                dz =  marker_position[2] - cup_position[2]
+
+                deltas["dx"].append(dx)
+                deltas["dy"].append(dy)
+                deltas["dz"].append(dz)
+
+        # Calculate the average delta for each axis
+        average_dx = sum(deltas["dx"]) / len(deltas["dx"])
+        average_dy = sum(deltas["dy"]) / len(deltas["dy"])
+        average_dz = sum(deltas["dz"]) / len(deltas["dz"])
+
+        state.extend([average_dx, average_dy, average_dz])
         return state
 
 
-    # def get_state(self):
-    #     # working here
-    #     # aruco_state_space = self.aruco_state_space()
-    #     # robot_stte_space =
+    def robot_state_space(self):
+        state = []
+        robot_pose = self.robot.getl()  # end effector pose
+        state.append(robot_pose[0])
+        state.append(robot_pose[1])
+        state.append(robot_pose[2])
+        return state
 
 
+    def get_state(self):
+        aruco_state_space = self.aruco_state_space()  # the "ball" position wrt to the cup mark
+        robot_state_space = self.robot_state_space()  # the "tool" position
+        state = robot_state_space + aruco_state_space
+        logging.info("State: %s", state)
+        return state
 
-
-
+    def get_reward(self):
+        pass
 
 
 
