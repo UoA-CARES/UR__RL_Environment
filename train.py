@@ -43,8 +43,8 @@ def main():
     env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
 
-    while True:
-        env.get_state()
+    # while True:
+    #     env.get_state()
 
     # for i in range(2):
     #     env.hard_code_solution()
