@@ -125,6 +125,10 @@ class Environment:
         self.robot.movel(desire_tool_pose, acc=self.acc, vel=self.vel)
         logging.info("Move completed")
 
+    def tool_move_pose(self, tool_pose):
+        self.robot.movel(tool_pose, acc=self.acc, vel=self.vel)
+        logging.info("Move completed")
+
     def hard_code_solution(self):
 
         # pose 1
@@ -181,6 +185,7 @@ class Environment:
         cup_marker_pose = marker_poses[self.cup_id]
         cup_position = cup_marker_pose["position"]
 
+        distances = []
         deltas = {"dx": [], "dy": [], "dz": []}
 
         for id in marker_ids:
@@ -192,18 +197,51 @@ class Environment:
                 dx =  marker_position[0] - cup_position[0]
                 dy =  marker_position[1] - cup_position[1]
                 dz =  marker_position[2] - cup_position[2]
-
                 deltas["dx"].append(dx)
                 deltas["dy"].append(dy)
                 deltas["dz"].append(dz)
+
+                # Calculate the distance between the marker and the cup
+                distance = ((cup_position[0] - marker_position[0]) ** 2 +
+                            (cup_position[1] - marker_position[1]) ** 2 +
+                            (cup_position[2] - marker_position[2]) ** 2) ** 0.5
+                distances.append(distance)
 
         # Calculate the average delta for each axis
         average_dx = sum(deltas["dx"]) / len(deltas["dx"])
         average_dy = sum(deltas["dy"]) / len(deltas["dy"])
         average_dz = sum(deltas["dz"]) / len(deltas["dz"])
 
+        # Calculate the average final distance
+        average_distance = sum(distances) / len(distances)
+
         state.extend([average_dx, average_dy, average_dz])
-        return state
+        return state, average_distance
+
+
+    def get_aruco_distance(self):
+        marker_ids, marker_poses = self.get_marker_poses()
+        cup_marker_pose = marker_poses[self.cup_id]
+        cup_position = cup_marker_pose["position"]
+
+        distances = []
+        for id in marker_ids:
+            if id != self.cup_id:  # Exclude the cup ID itself
+                marker_pose = marker_poses[id]
+                marker_position = marker_pose["position"]
+
+                # Calculate the distance between the marker and the cup
+                distance = ((cup_position[0] - marker_position[0]) ** 2 +
+                            (cup_position[1] - marker_position[1]) ** 2 +
+                            (cup_position[2] - marker_position[2]) ** 2) ** 0.5
+                distances.append(distance)
+
+        if distances:  # Check if distances list is not empty
+            # Calculate the average final distance
+            average_distance = sum(distances) / len(distances)
+            logging.info("Average Distance to the Cup: %s", average_distance)
+            return average_distance
+
 
 
     def robot_state_space(self):
@@ -216,14 +254,53 @@ class Environment:
 
 
     def get_state(self):
-        aruco_state_space = self.aruco_state_space()  # the "ball" position wrt to the cup mark
+        aruco_state_space, distance = self.aruco_state_space()  # the "ball" position wrt to the cup mark
         robot_state_space = self.robot_state_space()  # the "tool" position
         state = robot_state_space + aruco_state_space
         logging.info("State: %s", state)
-        return state
+        return state, distance
 
-    def get_reward(self):
-        pass
+    def read_sensor(self):
+        # this will be reading the sensor inside the cube
+        sensor_read = self.robot.get_digital_in(0)  # 0 off , 1 on
+        return sensor_read
+
+    def get_reward(self, state, distance):
+        sensor_in_cup = self.read_sensor() # 0 if no ball, 1 if ball is in the cup
+        dy = state[4] # Change in height axis: positive if cube is under the cup
+
+        done = False
+        reward = 0
+        scaling_factor = 0.5
+        threshold_distance = 15  # cm
+
+
+        # Penalize if cube is under the cup
+        if dy >= 0:
+            reward = - scaling_factor * dy  # Penalize proportional to the distance below the cup
+        else:
+            # Encourage if cube is close to the cup
+            if distance < threshold_distance:
+                reward = 0.5
+                done = True
+
+        if sensor_in_cup == 1:
+            reward = 1.0  # Reward for successfully placing the ball in the cup
+
+        return reward, done
+
+
+    def step(self, action):
+
+        self.tool_move_pose(action)
+        state, distance = self.get_state()
+        reward, done = self.get_reward(state, distance)
+
+
+
+
+
+
 
 
 

@@ -13,7 +13,6 @@ from cares_lib.vision.ArucoDetector import ArucoDetector
 class Environment:
     def __init__(self):
 
-
         camera_matrix     = parent_dir + '/config/matrix.txt'
         camera_distortion = parent_dir + '/config/distortion.txt'
 

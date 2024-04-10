@@ -26,6 +26,17 @@ def read_camera_files():
     return camera_matrix, camera_distortion
 
 
+def training_loop(env, robot):
+
+    action = env.get_sample_pose() # random action
+    env.step(action)
+
+
+
+
+
+
+
 def main():
     config = read_config_file()
     camera_matrix, camera_distortion = read_camera_files()
@@ -40,8 +51,10 @@ def main():
                       camera_matrix=camera_matrix,
                       camera_distortion=camera_distortion)
 
-    env.starting_position()  # just making sure the joint are in the right position for initialization
+    #env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
+
+    training_loop(env, robot)
 
     # while True:
     #     env.get_state()
