@@ -95,24 +95,48 @@ class Environment:
         self.robot.movel(desire_pose, vel=0.2, acc=1.0) # different speed for safety reasons
         logging.info("Robot at home position")
 
-    def reset_task(self):
-        # self.robot_home_position()
-        time.sleep(2)
-
-        # todo, can add if statement when the sensor is mounted, If ball in cup do
-        desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 100, self.home_orientation[2])
-        rotate_move_pose = prepare_point((self.home_position + desire_orientation))
-        self.robot.movel(rotate_move_pose, vel=0.2, acc=1.0)
-
-        self.robot_home_position()
-
-        # this is to reduce the oscillation
+    def reduce_oscillation_move(self):
         desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.59)
         touch_ground_move_pose = prepare_point((desire_position + self.home_orientation))
         self.robot.movel(touch_ground_move_pose, vel=0.2, acc=1.0)
+
+
+    def reset_task(self):
         time.sleep(2)
 
-        self.robot_home_position()
+        # Resets the environment for a new episode.
+        self.robot_home_position()  # move robot to home position
+
+        distance_string = 37 # cm
+        sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
+
+        if sensor_in_cup == 1:
+            # Case 1: the ball in the cup
+            logging.info("Resetting ball in cup")
+            desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 100, self.home_orientation[2])
+            rotate_move_pose = prepare_point((self.home_position + desire_orientation))
+            self.robot.movel(rotate_move_pose, vel=0.2, acc=1.0)
+
+        else:
+            state, distance = self.get_state()
+            if distance >= distance_string/2:
+                # Case 2: The ball is not in the cup but oscillating
+                logging.info("Resetting ball not in cup, reducing oscillation")
+                # Reduce the oscillation
+                self.reduce_oscillation_move()
+                time.sleep(2)
+            else:
+                # Case 3: the string is tangled up in the robot
+                logging.info("Resetting untangle and reducing oscillation")
+                desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 179, self.home_orientation[2])
+                untangle_move_pose = prepare_point((self.home_position + desire_orientation))
+                self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
+                self.robot_home_position()  # move robot to home position
+                self.reduce_oscillation_move()
+                time.sleep(2)
+
+        self.robot_home_position()  # move robot to home position
+
 
     def get_sample_pose(self):
         desire_position = self.sample_position()  # (x, y, z) w.r.t to the base
@@ -274,7 +298,6 @@ class Environment:
         scaling_factor = 0.5
         threshold_distance = 15  # cm
 
-
         # Penalize if cube is under the cup
         if dy >= 0:
             reward = - scaling_factor * dy  # Penalize proportional to the distance below the cup
@@ -295,6 +318,8 @@ class Environment:
         self.tool_move_pose(action)
         state, distance = self.get_state()
         reward, done = self.get_reward(state, distance)
+
+        return state, reward, done
 
 
 

@@ -29,7 +29,9 @@ def read_camera_files():
 def training_loop(env, robot):
 
     action = env.get_sample_pose() # random action
-    env.step(action)
+    # env.step(action)
+
+    env.reset_task()
 
 
 
@@ -51,7 +53,7 @@ def main():
                       camera_matrix=camera_matrix,
                       camera_distortion=camera_distortion)
 
-    #env.starting_position()  # just making sure the joint are in the right position for initialization
+    env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
 
     training_loop(env, robot)
