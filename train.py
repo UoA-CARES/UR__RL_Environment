@@ -28,15 +28,13 @@ def read_camera_files():
 
 def training_loop(env, robot):
 
-    action = env.get_sample_pose() # random action
+    #action = env.get_sample_pose() # random action
     # env.step(action)
 
-    env.reset_task()
-
-
-
-
-
+    for i in range(10):
+        env.hard_code_solution()
+        env.reset_task()
+    env.robot_home_position()
 
 
 def main():
@@ -59,6 +57,10 @@ def main():
     # env.function_test()
 
     training_loop(env, robot)
+
+    # while True:
+    #     sensor = env.read_sensor()
+    #     print(sensor)
 
 
     # while True:

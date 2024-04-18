@@ -101,6 +101,7 @@ class Environment:
         self.robot.movel(touch_ground_move_pose, vel=0.2, acc=1.0)
 
 
+
     def reset_task(self):
         """
         Resets the environment for a new episode.
@@ -118,7 +119,7 @@ class Environment:
 
         else:
             state, distance = self.get_state()
-            if distance >= distance_string/2:
+            if distance >= distance_string - 5:
                 # Case 2: The ball is not in the cup but oscillating
                 self.reset_oscillating_ball()
 
@@ -128,8 +129,6 @@ class Environment:
                 self.reset_tangled_string(untangled_attempts, distance)
 
         self.robot_home_position()  # move robot to home position
-
-
 
     def reset_ball_in_cup(self):
         """
@@ -148,16 +147,17 @@ class Environment:
         self.reduce_oscillation_move()
         time.sleep(2)
 
-
     def reset_tangled_string(self, untangled_attempts, original_distance):
         """
         Reset the scenario when the string is tangled up in the robot.
         """
         logging.info("Resetting with tangled string")
         untangled_direction = False
-        rotation_angle = 179
+        rotation_angle = -179
         for i in range(untangled_attempts):
             print(i)
+            print(rotation_angle)
+            self.robot_home_position()
             untangled_direction = self.attempt_to_untangle(rotation_angle, original_distance)
             if untangled_direction:
                 break
@@ -168,8 +168,6 @@ class Environment:
             logging.error("Unable to untangle string. Human intervention required.")
             input()  # Wait for user to press Enter
 
-
-
     def attempt_to_untangle(self, rotation_angle, original_distance):
         """
         Attempt to untangle the string by rotating the robot.
@@ -179,9 +177,11 @@ class Environment:
         desire_orientation = (self.home_orientation[0], self.home_orientation[1] + rotation_angle, self.home_orientation[2])
         untangle_move_pose = prepare_point((self.home_position + desire_orientation))
         self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
+        logging.info("moveeeeeeeeee")
         time.sleep(2)
 
         _, new_distance = self.get_state()
+        print(original_distance, new_distance)
 
         if new_distance > original_distance:
             logging.info("String untangled successfully")
@@ -191,7 +191,6 @@ class Environment:
         else:
             logging.info("Untangle attempt unsuccessful")
             return False
-
 
     def untangle_move(self, rotation_angle):
         desire_orientation = (self.home_orientation[0]-90, self.home_orientation[1] + rotation_angle, self.home_orientation[2])
@@ -203,7 +202,6 @@ class Environment:
         self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
 
         self.robot_home_position()
-
 
     def get_sample_pose(self):
         desire_position = self.sample_position()  # (x, y, z) w.r.t to the base
@@ -247,7 +245,6 @@ class Environment:
         self.robot.movel(desire_pose_4, acc=self.acc, vel=self.vel)
 
         #self.robot.movels([desire_pose_1, desire_pose_2, desire_pose_3], vel=self.vel, acc=self.acc, radius=0.01)
-
 
     def get_marker_poses(self):
         while True:
@@ -309,7 +306,6 @@ class Environment:
         state.extend([average_dx, average_dy, average_dz])
         return state, average_distance
 
-
     def get_aruco_distance(self):
         marker_ids, marker_poses = self.get_marker_poses()
         cup_marker_pose = marker_poses[self.cup_id]
@@ -333,8 +329,6 @@ class Environment:
             logging.info("Average Distance to the Cup: %s", average_distance)
             return average_distance
 
-
-
     def robot_state_space(self):
         state = []
         robot_pose = self.robot.getl()  # end effector pose
@@ -342,7 +336,6 @@ class Environment:
         state.append(robot_pose[1])
         state.append(robot_pose[2])
         return state
-
 
     def get_state(self):
         aruco_state_space, distance = self.aruco_state_space()  # the "ball" position wrt to the cup mark
@@ -383,9 +376,7 @@ class Environment:
 
         return reward, done
 
-
     def step(self, action):
-
         self.tool_move_pose(action)
         state, distance = self.get_state()
         reward, done = self.get_reward(state, distance)
