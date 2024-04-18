@@ -56,7 +56,10 @@ def main():
     env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
 
+    # env.function_test()
+
     training_loop(env, robot)
+
 
     # while True:
     #     env.get_state()

@@ -102,40 +102,107 @@ class Environment:
 
 
     def reset_task(self):
+        """
+        Resets the environment for a new episode.
+        """
         time.sleep(2)
-
-        # Resets the environment for a new episode.
         self.robot_home_position()  # move robot to home position
 
+        untangled_attempts = 4 # Number of attempts to untangle before human intervention is needed
         distance_string = 37 # cm
         sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
 
         if sensor_in_cup == 1:
             # Case 1: the ball in the cup
-            logging.info("Resetting ball in cup")
-            desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 100, self.home_orientation[2])
-            rotate_move_pose = prepare_point((self.home_position + desire_orientation))
-            self.robot.movel(rotate_move_pose, vel=0.2, acc=1.0)
+            self.reset_ball_in_cup()
 
         else:
             state, distance = self.get_state()
             if distance >= distance_string/2:
                 # Case 2: The ball is not in the cup but oscillating
-                logging.info("Resetting ball not in cup, reducing oscillation")
-                # Reduce the oscillation
-                self.reduce_oscillation_move()
-                time.sleep(2)
+                self.reset_oscillating_ball()
+
             else:
                 # Case 3: the string is tangled up in the robot
-                logging.info("Resetting untangle and reducing oscillation")
-                desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 179, self.home_orientation[2])
-                untangle_move_pose = prepare_point((self.home_position + desire_orientation))
-                self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
-                self.robot_home_position()  # move robot to home position
-                self.reduce_oscillation_move()
-                time.sleep(2)
+                logging.info("Case_3------------")
+                self.reset_tangled_string(untangled_attempts, distance)
 
         self.robot_home_position()  # move robot to home position
+
+
+
+    def reset_ball_in_cup(self):
+        """
+        Reset the scenario when the ball is already in the cup.
+        """
+        logging.info("Resetting with ball already in cup")
+        desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 100, self.home_orientation[2])
+        rotate_move_pose = prepare_point((self.home_position + desire_orientation))
+        self.robot.movel(rotate_move_pose, vel=0.2, acc=1.0)
+
+    def reset_oscillating_ball(self):
+        """
+        Reset the scenario when the ball is not in the cup but oscillating.
+        """
+        logging.info("Resetting with oscillating ball")
+        self.reduce_oscillation_move()
+        time.sleep(2)
+
+
+    def reset_tangled_string(self, untangled_attempts, original_distance):
+        """
+        Reset the scenario when the string is tangled up in the robot.
+        """
+        logging.info("Resetting with tangled string")
+        untangled_direction = False
+        rotation_angle = 179
+        for i in range(untangled_attempts):
+            print(i)
+            untangled_direction = self.attempt_to_untangle(rotation_angle, original_distance)
+            if untangled_direction:
+                break
+            rotation_angle *= -1  # Change direction for the next attempt
+            print(untangled_direction, "untangleeeee")
+
+        if not untangled_direction:
+            logging.error("Unable to untangle string. Human intervention required.")
+            input()  # Wait for user to press Enter
+
+
+
+    def attempt_to_untangle(self, rotation_angle, original_distance):
+        """
+        Attempt to untangle the string by rotating the robot.
+        Returns True if successful, False otherwise.
+        """
+        logging.info(f"Attempting to untangle string with rotation angle")
+        desire_orientation = (self.home_orientation[0], self.home_orientation[1] + rotation_angle, self.home_orientation[2])
+        untangle_move_pose = prepare_point((self.home_position + desire_orientation))
+        self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
+        time.sleep(2)
+
+        _, new_distance = self.get_state()
+
+        if new_distance > original_distance:
+            logging.info("String untangled successfully")
+            self.untangle_move(rotation_angle)
+            self.reduce_oscillation_move()
+            return True
+        else:
+            logging.info("Untangle attempt unsuccessful")
+            return False
+
+
+    def untangle_move(self, rotation_angle):
+        desire_orientation = (self.home_orientation[0]-90, self.home_orientation[1] + rotation_angle, self.home_orientation[2])
+        untangle_move_pose = prepare_point((self.home_position + desire_orientation))
+        self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
+
+        desire_orientation = (self.home_orientation[0]-90, self.home_orientation[1] + rotation_angle, self.home_orientation[2]-rotation_angle)
+        untangle_move_pose = prepare_point((self.home_position + desire_orientation))
+        self.robot.movel(untangle_move_pose, vel=0.2, acc=1.0)
+
+        self.robot_home_position()
 
 
     def get_sample_pose(self):
@@ -286,8 +353,12 @@ class Environment:
 
     def read_sensor(self):
         # this will be reading the sensor inside the cube
-        sensor_read = self.robot.get_digital_in(0)  # 0 off , 1 on
-        return sensor_read
+        #sensor_read = self.robot.get_digital_in(0)  # 0 off , 1 on, For any reason this line did not work
+        digital_in = 0
+        sensor_read = self.robot.get_digital_in_bits()
+        if sensor_read == 131072:
+            digital_in = 1
+        return digital_in
 
     def get_reward(self, state, distance):
         sensor_in_cup = self.read_sensor() # 0 if no ball, 1 if ball is in the cup
