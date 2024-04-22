@@ -32,8 +32,9 @@ def training_loop(env, robot):
     # env.step(action)
 
     for i in range(10):
-        env.hard_code_solution()
         env.reset_task()
+        env.hard_code_solution()
+
     env.robot_home_position()
 
 

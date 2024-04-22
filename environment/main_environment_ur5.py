@@ -96,7 +96,7 @@ class Environment:
         logging.info("Robot at home position")
 
     def reduce_oscillation_move(self):
-        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.59)
+        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.58)
         touch_ground_move_pose = prepare_point((desire_position + self.home_orientation))
         self.robot.movel(touch_ground_move_pose, vel=0.2, acc=1.0)
 
@@ -116,6 +116,7 @@ class Environment:
         if sensor_in_cup == 1:
             # Case 1: the ball in the cup
             self.reset_ball_in_cup()
+            self.reset_oscillating_ball()
 
         else:
             state, distance = self.get_state()
@@ -349,7 +350,7 @@ class Environment:
         #sensor_read = self.robot.get_digital_in(0)  # 0 off , 1 on, For any reason this line did not work
         digital_in = 0
         sensor_read = self.robot.get_digital_in_bits()
-        if sensor_read == 131072:
+        if sensor_read == 65536:
             digital_in = 1
         return digital_in
 
