@@ -42,7 +42,7 @@ def training_loop(env, robot):
         sample_action = env.get_sample_pose()  # random action
         next_state, reward, done, truncated = env.step(sample_action)
 
-        print(state, "state")
+        print(total_step_counter, state, "state")
         # print(next_state, "next_state")
         # print(sample_action, "action")
         # print(done, "done")
