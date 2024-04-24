@@ -60,20 +60,9 @@ def training_loop(env, robot):
             episode_reward = 0
             episode_num += 1
 
-
-
-
-
-
-
-
-    # sample_action = env.get_sample_pose() # random action
-    # # env.step(action)
-    #
-    # for i in range(10):
-    #     env.reset_task()
+    # for i in range(5):
+    #     _ = env.environment_reset()
     #     env.hard_code_solution()
-    #
     # env.robot_home_position()
 
 

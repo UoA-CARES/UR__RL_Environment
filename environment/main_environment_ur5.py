@@ -44,7 +44,7 @@ class Environment:
 
         #-----
         self.step_counter = 0
-        self.episode_horizon = 5
+        self.episode_horizon = 10
 
 
     def test_position(self, x, y, z):
@@ -102,6 +102,7 @@ class Environment:
         """
         Resets the environment for a new episode.
         """
+        self.step_counter = 0
         time.sleep(2)
         self.robot_home_position()  # move robot to home position
 
