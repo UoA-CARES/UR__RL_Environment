@@ -14,6 +14,8 @@ from cares_lib.vision.ArucoDetector import ArucoDetector
 
 class Environment:
     def __init__(self, robot, velocity=0.1, acceleration=0.5, camera_matrix=None, camera_distortion=None):
+
+        self.sensor_in_cup = 0
         self.robot = robot
 
         self.robot.set_tcp((0, 0, 0, 0, 0, 0))  # Set tool central point
@@ -108,9 +110,9 @@ class Environment:
 
         untangled_attempts = 4 # Number of attempts to untangle before human intervention is needed
         distance_string = 33 # cm
-        sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
+        self.sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
 
-        if sensor_in_cup == 1:
+        if self.sensor_in_cup == 1:
             # Case 1: the ball in the cup
             self.reset_ball_in_cup()
             self.reset_oscillating_ball()
@@ -267,8 +269,8 @@ class Environment:
                 logging.info("Detected IDs: %s", detected_ids)
                 break
             logging.info("no marker detected")
-
         return detected_ids, marker_poses
+
 
     def aruco_state_space(self):
         state = []
@@ -319,16 +321,26 @@ class Environment:
         return state
 
     def get_state(self):
-        aruco_state_space, distance = self.aruco_state_space()  # the "ball" position wrt to the cup mark
+
+        self.sensor_in_cup = self.read_sensor()
+
+        if self.sensor_in_cup == 1:
+            # if the sensor is on, means the ball is in the cup, therefore I can not see the ball aruco marker,
+            # so the dx, dy, dz and the distance are zero
+            aruco_state_space, distance = [0, 0, 0], 0
+
+        else:
+            aruco_state_space, distance = self.aruco_state_space()  # the "ball" position wrt to the cup mark
+
         robot_state_space = self.robot_state_space()  # the "tool" position
         state = robot_state_space + aruco_state_space
+
         logging.info("State: %s", state)
         return state, distance
 
     def get_reward(self, state, distance):
-        sensor_in_cup = self.read_sensor() # 0 if no ball, 1 if ball is in the cup
-        dy = state[4] # Change in height axis: positive if cube is under the cup
 
+        dy = state[4] # Change in height axis: positive if cube is under the cup
         done = False
         reward = 0
         scaling_factor = 0.5
@@ -343,8 +355,9 @@ class Environment:
                 reward = 0.5
                 done = True
 
-        if sensor_in_cup == 1:
+        if self.sensor_in_cup == 1:
             reward = 1.0  # Reward for successfully placing the ball in the cup
+            done = True
 
         return reward, done
 
@@ -354,21 +367,12 @@ class Environment:
         logging.info("Move completed")
 
     def step(self, action):
+
         self.step_counter += 1
-
         self.tool_move_pose(action)
-        state, distance = self.get_state()
-        reward, done = self.get_reward(state, distance)
 
+        state, distance = self.get_state()
+        reward, done    = self.get_reward(state, distance)
         truncated = self.step_counter >= self.episode_horizon
 
         return state, reward, done, truncated
-
-
-
-
-
-
-
-
-

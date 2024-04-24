@@ -43,10 +43,10 @@ def training_loop(env, robot):
         next_state, reward, done, truncated = env.step(sample_action)
 
         print(state, "state")
-        print(next_state, "next_state")
-        print(sample_action, "action")
-        print(done, "done")
-        print(truncated, "truncated")
+        # print(next_state, "next_state")
+        # print(sample_action, "action")
+        # print(done, "done")
+        # print(truncated, "truncated")
 
         state = next_state
         episode_reward += reward
