@@ -1,3 +1,4 @@
+import time
 import os
 import json
 import urx
@@ -27,15 +28,53 @@ def read_camera_files():
 
 
 def training_loop(env, robot):
+    # to fix later
+    max_steps_training = 1000
 
-    #action = env.get_sample_pose() # random action
-    # env.step(action)
+    episode_timesteps = 0
+    episode_reward = 0
+    episode_num = 0
 
-    for i in range(10):
-        env.reset_task()
-        env.hard_code_solution()
+    state = env.environment_reset()
+    for total_step_counter in range(int(max_steps_training)):
+        episode_timesteps += 1
 
-    env.robot_home_position()
+        sample_action = env.get_sample_pose()  # random action
+        next_state, reward, done, truncated = env.step(sample_action)
+
+        print(state, "state")
+        print(next_state, "next_state")
+        print(sample_action, "action")
+        print(done, "done")
+        print(truncated, "truncated")
+
+        state = next_state
+        episode_reward += reward
+
+        if done or truncated:
+            logging.info(f"Episode ends.\n"
+                         f"Episode reward: {episode_reward}.\n"
+                         f"Episode steps: {episode_timesteps}.\n")
+            state = env.environment_reset()
+            episode_timesteps = 0
+            episode_reward = 0
+            episode_num += 1
+
+
+
+
+
+
+
+
+    # sample_action = env.get_sample_pose() # random action
+    # # env.step(action)
+    #
+    # for i in range(10):
+    #     env.reset_task()
+    #     env.hard_code_solution()
+    #
+    # env.robot_home_position()
 
 
 def main():
@@ -54,19 +93,11 @@ def main():
 
     env.starting_position()  # just making sure the joint are in the right position for initialization
     env.robot_home_position()
-
-    # env.function_test()
-
     training_loop(env, robot)
 
     # while True:
     #     sensor = env.read_sensor()
     #     print(sensor)
-
-
-    # while True:
-    #     env.get_state()
-
     # for i in range(2):
     #     env.hard_code_solution()
     #     env.reset_task()
