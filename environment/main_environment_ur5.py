@@ -45,6 +45,7 @@ class Environment:
         self.cup_id = 0                        # ID attached to the cup
 
         #-----
+        self.max_tries = 0
         self.step_counter = 0
         self.episode_horizon = 10
 
@@ -148,7 +149,7 @@ class Environment:
         Reset the scenario when the ball is not in the cup but oscillating.
         """
         logging.info("Resetting with oscillating ball")
-        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.59)
+        desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.60)
         touch_ground_move_pose = prepare_point((desire_position + self.home_orientation))
         self.robot.movel(touch_ground_move_pose, vel=0.2, acc=1.0)
         time.sleep(2)
