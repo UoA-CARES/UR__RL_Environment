@@ -1,7 +1,10 @@
+import numpy as np
 import math
 import random
 import logging
 import time
+from collections import deque
+
 
 logging.basicConfig(level=logging.INFO)
 import collections
@@ -48,6 +51,10 @@ class Environment:
         self.max_tries = 0
         self.step_counter = 0
         self.episode_horizon = 10
+
+        # to be use later
+        self.state_stack_size  = 3
+        self.aruco_state_stack = deque(maxlen=self.state_stack_size)
 
 
     def test_position(self, x, y, z):
@@ -109,6 +116,8 @@ class Environment:
         time.sleep(2)
         self.robot_home_position()  # move robot to home position
 
+
+
         untangled_attempts = 4 # Number of attempts to untangle before human intervention is needed
         distance_string = 33 # cm
         self.sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
@@ -117,18 +126,20 @@ class Environment:
             # Case 1: the ball in the cup
             self.reset_ball_in_cup()
             self.reset_oscillating_ball()
+            self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
             state, distance = self.get_state()
-
         else:
             _, distance = self.get_state()
             if distance >= distance_string - 5:
                 # Case 2: The ball is not in the cup but oscillating
                 self.reset_oscillating_ball()
+                self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
                 state, _ = self.get_state()
 
             else:
                 # Case 3: the string is tangled up in the robot
                 self.reset_tangled_string(untangled_attempts, distance)
+                self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
                 state, _ = self.get_state()
 
         return state
@@ -331,12 +342,28 @@ class Environment:
             aruco_state_space, distance = [0, 0, 0], 0
 
         else:
+            # [[dx, dy, dz], distance]
             aruco_state_space, distance = self.aruco_state_space()  # the "ball" position wrt to the cup mark
 
-        robot_state_space = self.robot_state_space()  # the "tool" position
-        state = robot_state_space + aruco_state_space
+        # stack 3 consecutive aruco_state_space so the state will be:
+        # state = [ Frame1 | Frame2 | Frame 3 | Px, Py, Pz ]
+        # state = [ dx, dy, dz| dx, dy, dz | dx, dy, dz,| Px, Py, Pz ]
 
-        logging.info("State: %s", state)
+        if len(self.aruco_state_stack) == 0:
+            # this means this is coming after a reset state
+            for _ in range(self.state_stack_size):
+                self.aruco_state_stack.append(aruco_state_space)
+        else:
+            self.aruco_state_stack.append(aruco_state_space)
+
+
+        # Stack the current Aruco marker state with previous Aruco marker states
+        stacked_aruco_state = []
+        for state in self.aruco_state_stack:
+            stacked_aruco_state.extend(state)
+
+        robot_state_space = self.robot_state_space()  # the "tool" position
+        state = robot_state_space + stacked_aruco_state
         return state, distance
 
     def get_reward(self, state, distance):
@@ -371,7 +398,7 @@ class Environment:
 
         self.step_counter += 1
         self.tool_move_pose(action)
-
+        input()
         state, distance = self.get_state()
         reward, done    = self.get_reward(state, distance)
         truncated = self.step_counter >= self.episode_horizon

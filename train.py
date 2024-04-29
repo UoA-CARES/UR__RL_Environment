@@ -36,19 +36,18 @@ def training_loop(env, robot):
     episode_num = 0
 
     state = env.environment_reset()
+
     for total_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
         sample_action = env.get_sample_pose()  # random action
-        next_state, reward, done, truncated = env.step(sample_action)
 
-        print(total_step_counter, state, "state")
-        # print(next_state, "next_state")
-        # print(sample_action, "action")
-        # print(done, "done")
-        # print(truncated, "truncated")
+        next_state, reward, done, truncated = env.step(sample_action)
+        logging.info("State: %s", state)
 
         state = next_state
+
+
         episode_reward += reward
 
         if done or truncated:
