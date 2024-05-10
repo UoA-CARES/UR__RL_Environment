@@ -1,14 +1,12 @@
-import numpy as np
 import math
 import random
 import logging
 import time
 from collections import deque
 
-
 logging.basicConfig(level=logging.INFO)
 import collections
-collections.Iterable = collections.abc.Iterable # Need this for math3d lib issues
+collections.Iterable = collections.abc.Iterable # Critical -->  Need this for math3d lib issues
 
 from tools.util import prepare_point
 from tools.camera import Camera
@@ -18,8 +16,8 @@ from cares_lib.vision.ArucoDetector import ArucoDetector
 class Environment:
     def __init__(self, robot, velocity=0.1, acceleration=0.5, camera_matrix=None, camera_distortion=None):
 
-        self.sensor_in_cup = 0
         self.robot = robot
+        self.sensor_in_cup = 0
 
         self.robot.set_tcp((0, 0, 0, 0, 0, 0))  # Set tool central point
         self.robot.set_payload(0.4, (0, 0, 0))  # Kg
@@ -28,15 +26,16 @@ class Environment:
         self.acc = acceleration
 
         # Home Position
-        self.home_position    = (0.14, -0.50, 0.40) # X, Y , Z
+        # base of the robot frame. Power cable point to the +Y
+        self.home_position    = (0.14, -0.50, 0.40) # X, Y , Z --> w.r.t the base
         self.home_orientation = (90.0, 0.0, 0.0)  # Roll, Pith , Yaw --> in Degrees
 
-        # Working Area
+        # Working Area, the work area is an ellipse
         self.h, self.k = (self.home_position[0], self.home_position[2])  # central_point in (x, z)
         self.a = 0.30  # Semi-major axis length  x-axis
         self.b = 0.25  # Semi-minor axis length  z-axis
 
-        # wrist 3 range
+        # wrist 3 angle rotation range
         self.min_angle_rotation = -80
         self.max_angle_rotation = 80
 
@@ -52,10 +51,31 @@ class Environment:
         self.step_counter = 0
         self.episode_horizon = 10
 
-        # to be use later
+        # need to create a state
         self.state_stack_size  = 3
         self.aruco_state_stack = deque(maxlen=self.state_stack_size)
 
+    #-----------------------------------------------
+
+    def read_sensor(self):
+        """
+        This function reads the sensor inside the cup
+        sensor_read =  0 off , 1 on
+        For some reason "get_digital_in" didn't work, so I used get_digital_in_bits instead.
+        :return:
+        """
+        digital_in = 0
+        sensor_read = self.robot.get_digital_in_bits()
+        if sensor_read == 65536:  # 65536 was the values get from the UR5
+            digital_in = 1
+        return digital_in
+
+    def starting_position(self):
+        # This is just to make sure that the robot start in same position as expected and mounted
+        initial_position = (math.radians(90), math.radians(-90), math.radians(90),
+                            math.radians(0), math.radians(90), math.radians(0))
+        self.robot.movej(initial_position, vel=0.1, acc=1.0, wait=True) # different speed for safety reasons
+        logging.info("Robot at initial position")
 
     def test_position(self, x, y, z):
         ellipse_eq = ((x - self.h) ** 2) / (self.a ** 2) + ((z - self.k) ** 2) / (self.b ** 2)
@@ -78,78 +98,70 @@ class Environment:
         return True
 
     def check_point(self, pose):
+        """
+        This function verifies that the pose (position and orientation) is
+        within the operation area, that is, within the range of the ellipse.
+        """
         validate_position    = self.test_position(pose[0], pose[1], pose[2])
         validate_orientation = self.test_orientation(pose[3], pose[4], pose[5])
         if not (validate_position and validate_orientation):
-            logging.error("Not valid pose, sending robot to home position")
+            logging.error("Not valid pose, sending robot to home position, press enter to continue")
             input()
-            move_pose = prepare_point((self.home_position + self.home_orientation))
-            return move_pose
+            return prepare_point((self.home_position + self.home_orientation))
         return prepare_point(pose)
 
-    def starting_position(self):
-        # This is just to make sure that the robot start in same position as expected and mounted
-        initial_position = (math.radians(90), math.radians(-90), math.radians(90),
-                            math.radians(0), math.radians(90), math.radians(0))
-        self.robot.movej(initial_position, vel=0.1, acc=1.0, wait=True) # different speed for safety reasons
-        logging.info("Robot at initial position")
 
     def robot_home_position(self):
         desire_pose = prepare_point((self.home_position + self.home_orientation))
         self.robot.movel(desire_pose, vel=0.2, acc=1.0) # different speed for safety reasons
         logging.info("Robot at home position")
 
-    def read_sensor(self):
-        # this will be reading the sensor inside the cube
-        #sensor_read = self.robot.get_digital_in(0)  # 0 off , 1 on, For any reason this line did not work
-        digital_in = 0
-        sensor_read = self.robot.get_digital_in_bits()
-        if sensor_read == 65536:
-            digital_in = 1
-        return digital_in
 
     def environment_reset(self):
         """
         Resets the environment for a new episode.
         """
-        self.step_counter = 0
         time.sleep(2)
+        self.step_counter = 0
         self.robot_home_position()  # move robot to home position
 
-
-
+        distance_string = 33  # cm, normal distance between cup and cube
         untangled_attempts = 4 # Number of attempts to untangle before human intervention is needed
-        distance_string = 33 # cm
-        self.sensor_in_cup = self.read_sensor()  # 0 if no ball, 1 if ball is in the cup
+
+        self.sensor_in_cup = self.read_sensor()
 
         if self.sensor_in_cup == 1:
             # Case 1: the ball in the cup
             self.reset_ball_in_cup()
             self.reset_oscillating_ball()
-            self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
-            state, distance = self.get_state()
+            self.aruco_state_stack.clear()  # just clear the deque that stack 3 "frames"
+            state, _ = self.get_state()
+
         else:
+            # Case 2: The ball is not in the cup
+            # I measure the distance between the cube and the cup again to know what position the cube is in.
             _, distance = self.get_state()
+
             if distance >= distance_string - 5:
-                # Case 2: The ball is not in the cup but oscillating
+                # Case 2.1: The ball is not in the cup but oscillating
                 self.reset_oscillating_ball()
-                self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
+                self.aruco_state_stack.clear()  # just clear the deque that stack 3 "frames"
                 state, _ = self.get_state()
 
             else:
-                # Case 3: the string is tangled up in the robot
+                # Case 2.2: the string is tangled up in the robot
                 self.reset_tangled_string(untangled_attempts, distance)
-                self.aruco_state_stack.clear()  # just clear the deque that stack 3 arucos
+                self.aruco_state_stack.clear()  # just clear the deque that stack 3 "frames"
                 state, _ = self.get_state()
 
         return state
 
-
     def reset_ball_in_cup(self):
         """
-        Reset the scenario when the ball is already in the cup.
+        Reset the environment when the cube is already in the cup.
+        Just rotate the wrist
         """
-        logging.info("Resetting with ball already in cup")
+        logging.info("Resetting with cube in cup")
         desire_orientation = (self.home_orientation[0], self.home_orientation[1] + 100, self.home_orientation[2])
         rotate_move_pose = prepare_point((self.home_position + desire_orientation))
         self.robot.movel(rotate_move_pose, vel=0.2, acc=1.0)
@@ -157,7 +169,9 @@ class Environment:
 
     def reset_oscillating_ball(self):
         """
-        Reset the scenario when the ball is not in the cup but oscillating.
+        Reset the environment when the ball is not in the cup but oscillating.
+        Move the arm down in  Z axis,  the cube hits the ground (this mitigates the oscillation)
+        and returns to home position
         """
         logging.info("Resetting with oscillating ball")
         desire_position = (self.home_position[0], self.home_position[1], self.home_position[2] - 0.60)
@@ -168,7 +182,10 @@ class Environment:
 
     def reset_tangled_string(self, untangled_attempts, original_distance):
         """
-        Reset the scenario when the string is tangled up in the robot.
+        Reset the environment when the string is tangled up in the robot.
+        Since there is no way to know which direction the tangle is, it moves in a specific direction.
+        If the distance between the cube and the cup increases, it means that the direction of untangle is correct;
+        otherwise, the other direction is taken.
         """
         logging.info("Resetting with tangled string")
         untangled_direction = False
@@ -219,6 +236,11 @@ class Environment:
         self.robot_home_position()
 
     def sample_position(self):
+        """
+        This function generates a position (for the tool effector) that is guaranteed
+        to be within the operation area, i.e. the ellipse.
+        :return:
+        """
         theta = random.uniform(0, 2 * math.pi)  # Generate random angle in radians
         radio = math.sqrt(random.uniform(0, 1))
         x = self.h + self.a * radio * math.cos(theta)
@@ -233,17 +255,22 @@ class Environment:
         return roll, pitch, yaw
 
     def get_sample_pose(self):
+        """
+        This function generates a random pose , that is guaranteed
+        to be within the operation area. w.r.t the robot base
+        :return:
+        """
         desire_position = self.sample_position()  # (x, y, z) w.r.t to the base
-        desire_orientation = self.sample_orientation() # r p y)
+        desire_orientation = self.sample_orientation() # (r p y)
         desire_pose = self.check_point((desire_position + desire_orientation))
         return desire_pose
 
-    def tool_move_pose_test(self):
-        desire_tool_pose   =  self.get_sample_pose()
-        self.robot.movel(desire_tool_pose, acc=self.acc, vel=self.vel)
-        logging.info("Move completed")
-
     def hard_code_solution(self):
+        """
+        This function basically solves the task. It is the solution to the problem:
+        move the arm in such a way that it puts the cube inside the cup.
+        :return:
+        """
         # pose 1
         desire_position_1 = (self.home_position[0]+0.27, self.home_position[1], self.home_position[2]+0.10)
         desire_orientation_1 = (self.home_orientation[0], self.home_orientation[1], self.home_orientation[2])
@@ -274,15 +301,14 @@ class Environment:
                                                                  display=True)
             detected_ids = [ids for ids in marker_poses]
 
-            detected_possible_ids = any(ids in detected_ids for ids in self.possible_ids)
+            detected_cube_ids = any(ids in detected_ids for ids in self.possible_ids)
             detected_cup_id = self.cup_id in detected_ids
 
-            if detected_possible_ids and detected_cup_id:
+            if detected_cube_ids and detected_cup_id:
                 logging.info("Detected IDs: %s", detected_ids)
                 break
-            logging.info("no marker detected")
+            logging.info("not all necessary markers are detected")
         return detected_ids, marker_poses
-
 
     def aruco_state_space(self):
         state = []
@@ -337,7 +363,7 @@ class Environment:
         self.sensor_in_cup = self.read_sensor()
 
         if self.sensor_in_cup == 1:
-            # if the sensor is on, means the ball is in the cup, therefore I can not see the ball aruco marker,
+            # if the sensor is on, means the ball is in the cup, therefore I can not see the cube aruco marker,
             # so the dx, dy, dz and the distance are zero
             aruco_state_space, distance = [0, 0, 0], 0
 
@@ -356,7 +382,6 @@ class Environment:
         else:
             self.aruco_state_stack.append(aruco_state_space)
 
-
         # Stack the current Aruco marker state with previous Aruco marker states
         stacked_aruco_state = []
         for state in self.aruco_state_stack:
@@ -367,7 +392,6 @@ class Environment:
         return state, distance
 
     def get_reward(self, state, distance):
-
         dy = state[4] # Change in height axis: positive if cube is under the cup
         done = False
         reward = 0
@@ -395,10 +419,8 @@ class Environment:
         logging.info("Move completed")
 
     def step(self, action):
-
         self.step_counter += 1
         self.tool_move_pose(action)
-        input()
         state, distance = self.get_state()
         reward, done    = self.get_reward(state, distance)
         truncated = self.step_counter >= self.episode_horizon

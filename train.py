@@ -59,19 +59,14 @@ def training_loop(env, robot):
             episode_reward = 0
             episode_num += 1
 
-    # for i in range(5):
-    #     _ = env.environment_reset()
-    #     env.hard_code_solution()
-    # env.robot_home_position()
-
 
 def main():
     config = read_config_file()
     camera_matrix, camera_distortion = read_camera_files()
     ip_address_robot = config['ip_robot']
 
-    # robot = urx.Robot(ip_address_robot, use_rt=True, urFirm=config['urFirm'])
     robot = urx.Robot(ip_address_robot)
+    # robot = urx.Robot(ip_address_robot, use_rt=True, urFirm=config['urFirm'])
 
     env = Environment(robot,
                       velocity=config['velocity'],
@@ -79,17 +74,11 @@ def main():
                       camera_matrix=camera_matrix,
                       camera_distortion=camera_distortion)
 
-    env.starting_position()  # just making sure the joint are in the right position for initialization
+    # making sure the joint are in the right position for initialization purely joints position
+    env.starting_position()
     env.robot_home_position()
-    training_loop(env, robot)
+    # training_loop(env, robot)
 
-    # while True:
-    #     sensor = env.read_sensor()
-    #     print(sensor)
-    # for i in range(2):
-    #     env.hard_code_solution()
-    #     env.reset_task()
-    # env.robot_home_position()
 
     robot.close()
 

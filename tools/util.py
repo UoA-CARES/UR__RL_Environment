@@ -21,6 +21,11 @@ def rpytorotvec(angles):
 
 
 def prepare_point(pose):
+    """
+    This returns a pose that is ready to be sent to the robot.movel function or similar
+    :param pose:
+    :return:
+    """
     rx, ry, rz = rpytorotvec(pose[-3:])
     pose_ready = pose[:3] + (rx, ry, rz)
     return pose_ready
