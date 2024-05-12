@@ -27,7 +27,7 @@ def read_camera_files():
     return camera_matrix, camera_distortion
 
 
-def training_loop(env, robot):
+def training_example_loop(env):
     # to fix later
     max_steps_training = 1000
 
@@ -74,12 +74,10 @@ def main():
                       camera_matrix=camera_matrix,
                       camera_distortion=camera_distortion)
 
-    # making sure the joint are in the right position for initialization purely joints position
-    env.starting_position()
-    env.robot_home_position()
-    # training_loop(env, robot)
 
-
+    env.starting_position() # making sure the joint are in the right position for initialization purely joints position
+    env.robot_home_position() # put the robot at home position
+    training_example_loop(env)
     robot.close()
 
 

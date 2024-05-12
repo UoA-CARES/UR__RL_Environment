@@ -51,7 +51,7 @@ initialization setup used for the real robot. Make sure to use the right IP addr
 This simulation will not replicate the entire RL environment. Specifically, the ball (or cube) will not be present 
 in the simulation. It focuses solely on the robot itself, without any external environmental influences.
 
-Run the provided `general_test_example.py` example to ensure everything is set up correctly:
+Run the provided `train.py` example to ensure everything is set up correctly:
 
 ```
 python train.py
@@ -66,7 +66,7 @@ python train.py
 
 **Be careful here; the robot will start to move**
 
- Run the provided `general_test_example.py` example to ensure everything is set up correctly:
+ Run the provided `train.py` example to ensure everything is set up correctly:
 
 ```
 python train.py
