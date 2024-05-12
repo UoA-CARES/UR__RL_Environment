@@ -31,6 +31,14 @@
 pip install math3d==3.4.1
 ```
 
+## 3. Install Pypylon 
+
+1. Install this library, need for Basler Camera
+```
+pip install pypylon
+```
+ Connect the camera to a USB 3.0 port. 
+
 ## 3. Test the simulation
 
 A helpful Docker file is available for testing ideas in simulation. Simulation provides a safe environment to experiment 
