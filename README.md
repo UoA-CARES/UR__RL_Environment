@@ -4,9 +4,9 @@
 
 <div align="center">
   This repository contains the code to use RL on a UR5 robot with the traditional ball-in-cup game. The necessary package and basic instructions are presented.
-Before running this environment, ensure that the following requirements are met:
+  Before running this environment, ensure that the following requirements are met:
 
-
+</div>
 ## 1. Clone and Install Python URX Package
 
 - Clone the Python URX repository from GitHub:
