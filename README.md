@@ -47,7 +47,7 @@ http://172.17.0.2:6080/vnc.html?host=172.17.0.2&port=6080
 
 You will be able to view the control screen panel exactly as it appears on the real robot. Simply follow the same 
 initialization setup used for the real robot.
----
+
 
 
 ## 3. Test the real robot
