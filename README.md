@@ -47,19 +47,29 @@ http://172.17.0.2:6080/vnc.html?host=172.17.0.2&port=6080
 ```
 
 You will be able to view the control screen panel exactly as it appears on the real robot. Simply follow the same 
-initialization setup used for the real robot.
-
-
-
-## 3. Test the real robot
+initialization setup used for the real robot. Make sure to use the right IP address in the robot_config.json.
+This simulation will not replicate the entire RL environment. Specifically, the ball (or cube) will not be present 
+in the simulation. It focuses solely on the robot itself, without any external environmental influences.
 
 Run the provided `general_test_example.py` example to ensure everything is set up correctly:
 
 ```
-python general_test.py
+python train.py
 ```
 
----
 
-It is recommended to create a Conda environment
+## 3. Test the real robot
+
+ Turn on the real robot and follow the initialization instructions displayed on the control panel screen. 
+ Ensure that the robot is in the safe operational area before running any code. Make sure to use the right IP address in 
+ the robot_config.json 
+
+**Be careful here; the robot will start to move**
+
+ Run the provided `general_test_example.py` example to ensure everything is set up correctly:
+
+```
+python train.py
+```
+
 
