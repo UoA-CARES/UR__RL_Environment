@@ -1,9 +1,9 @@
-# UR Environment
+# 
+<h1 align="center">UR-5 Ball in Cup Environment</h1>
 
 
-
-# Environment Setup Instructions
-
+<div align="center">
+  This repository contains the code to use RL on a UR5 robot with the traditional ball-in-cup game. The necessary package and basic instructions are presented.
 Before running this environment, ensure that the following requirements are met:
 
 
