@@ -40,7 +40,8 @@ with new ideas without risking the real robot. So highly recommended to uses. In
 sudo docker run --rm -it   -p 6080:6080 -e ROBOT_MODEL=UR5 -v "${HOME}/ur_programs:/ursim/programs" universalrobots/ursim_e-series
 ```
 
-Then open a web browser and past the following link and press connect
+Then open a web browser and past the following link and press connect  
+
 ```
 http://172.17.0.2:6080/vnc.html?host=172.17.0.2&port=6080
 ```
