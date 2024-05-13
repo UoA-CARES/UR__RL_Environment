@@ -39,7 +39,7 @@ pip install pypylon
 ```
  Connect the camera to a USB 3.0 port. 
 
-## 3. Test the simulation
+## Test the simulation
 
 A helpful Docker file is available for testing ideas in simulation. Simulation provides a safe environment to experiment 
 with new ideas without risking the real robot. So highly recommended to uses. In a new terminal run: 
@@ -66,7 +66,7 @@ python train.py
 ```
 
 
-## 3. Test the real robot
+## Test the real robot
 
  Turn on the real robot and follow the initialization instructions displayed on the control panel screen. 
  Ensure that the robot is in the safe operational area before running any code. Make sure to use the right IP address in 
