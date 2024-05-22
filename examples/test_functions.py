@@ -1,16 +1,17 @@
+"""
+Basic functions for developing and testing
+"""
+
 
 import os
 import json
 import urx
-import time
 from math import pi
 import logging
 from pathlib import Path
 
 import collections
 collections.Iterable = collections.abc.Iterable # Need this for math3d lib issues
-
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -68,7 +69,6 @@ def move_tcp(robot):
     robot.set_pose(t, vel=v, acc=a) # move tcp to point and orientation defined by a transformation
     t.orient.rotate_zb(-pi / 8)  # rotate tcp around base z
     robot.set_pose(t, vel=v, acc=a)  # move tcp to point and orientation defined by a transformation
-
 
 
 def move_robot_joint(robot):
@@ -143,19 +143,10 @@ def test_function(robot):
         # robot.set_pose(t, vel=0.1, acc=0.8)  # move tcp to point and orientation defined by a transformation
 
 
-
-
     except Exception as e:
         pass
         logging.info("An error occurred while moving the robot:", e)
 
-
-def robot_home(robot):
-    robot.movej()
-
-
-def swinging(robot):
-    print(robot.getj())
 
 
 def main():
@@ -167,19 +158,11 @@ def main():
     robot.set_tcp((0, 0, 0, 0, 0, 0)) # Set tool central point
     robot.set_payload(0.5, (0, 0, 0)) # Kg
 
-
     test_function(robot)
     # read_data_from_robot(robot=robot)
     # move_robot_simple(robot=robot)
 
-    # # move_robot_p(robot=robot)
-    # move_robot_joint(robot)
-    # move_tcp(robot)
-
-
     robot.close()
-
-
 
 
 if __name__ == "__main__":

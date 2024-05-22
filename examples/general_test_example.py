@@ -1,5 +1,5 @@
 """
-Example from the original repo with very few modifications
+Example taken from the original URX repository, only very few modifications added/fixed to make it work
 """
 import sys
 import time
