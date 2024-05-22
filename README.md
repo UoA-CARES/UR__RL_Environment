@@ -80,4 +80,17 @@ python train.py
 python train.py
 ```
 
+Also, I have hard-coded the task solution, which consists of a sequence of movements to place the cube inside the cup. 
+Simply call the function "hard_code_solution" located in the "main_environment_ur5.py" file.
+
+
+## To-Do List
+
+Here are some tasks that need to be completed to finish or improve this project:
+
+- [ ] Update the code to ensure compatibility with the CARES RL package. You can find the package [here]() (https://github.com/UoA-CARES/cares_reinforcement_learning).
+- [ ] Improve the camera setup. Although the camera calibration has been done, it is highly recommended to recalibrate the camera in the robot's area for better accuracy.
+- [ ] Enhance the visualization of the task execution. Currently, only the cube and the ArUco marker are displayed. It should display additional information similar to what is done for the 2-finger gripper. You can find an example [here]() (https://github.com/UoA-CARES/gripper_gym).
+
+
 
